@@ -1,0 +1,12 @@
+{
+  "files": {
+    "main.js": "/movie-picker-ui/static/js/main.3e3c0761.js",
+    "static/js/453.c819b453.chunk.js": "/movie-picker-ui/static/js/453.c819b453.chunk.js",
+    "index.html": "/movie-picker-ui/index.html",
+    "main.3e3c0761.js.map": "/movie-picker-ui/static/js/main.3e3c0761.js.map",
+    "453.c819b453.chunk.js.map": "/movie-picker-ui/static/js/453.c819b453.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.3e3c0761.js"
+  ]
+}
