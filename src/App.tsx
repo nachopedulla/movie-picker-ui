@@ -7,36 +7,64 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
 } from "firebase/firestore";
-import Modal from "./Modal";
+import Modal from "./components/Modal/Modal";
+
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AddMovie from "./components/AddMovie/AddMovie";
+import { IoMdArrowDown } from "@react-icons/all-files/io/IoMdArrowDown";
+import { FaVoteYea } from "@react-icons/all-files/fa/FaVoteYea";
+import { FaTrashAlt } from "@react-icons/all-files/fa/FaTrashAlt";
+import { GiPopcorn } from "@react-icons/all-files/gi/GiPopcorn";
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
+import { Button, IconButton, Rating } from "@mui/material";
+import Calification from "./components/Calification/Calification";
 
 // Definir el tipo de Movie
-interface Movie {
-  id: string;
-  title: string;
+export interface Movie {
+  id?: string;
+  title?: string;
+  createdBy?: "Nacho" | "Yami";
+  calification?: number
 }
 
 const App: React.FC = () => {
+
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [newMovie, setNewMovie] = useState<string>("");
-  const [picked, setPicked] = useState<Movie | null>(null);
-  const [showModal, setShowModal] = useState<boolean>(false);
+  
+  // Random movie pick
+  const [sorted, setSorted] = useState<Movie | null>(null);
+  const [showPicked, setShowPicked] = useState<boolean>(false);
+
+  // Picked movie to rate
+  const [picked, setPicked] = useState<string | null>(null);
+  const [showVote, setShowVote] = useState<boolean>(false);
+
+  // Loader
+  const [loading, setLoading] = useState<boolean>(false);
 
   const moviesCollectionRef = collection(db, "movies");
 
+  // Divide las peliculas segun su calificación
+  const ratedMovies = movies.filter(movie => movie.calification !== undefined);
+  const notRatedMovies = movies.filter(movie => movie.calification === undefined);
+
   // Obtener las películas desde Firebase
   const getMovies = async () => {
+    setLoading(true);
     const data = await getDocs(moviesCollectionRef);
     setMovies(data.docs.map((doc) => ({ ...doc.data(), id: doc.id } as Movie)));
+    setLoading(false);
   };
 
   // Agregar una película
-  const addMovie = async () => {
-    if (newMovie) {
-      await addDoc(moviesCollectionRef, { title: newMovie });
-      setNewMovie("");
-      getMovies();
-    }
+  const addMovie = async (movie: Movie) => {
+    await addDoc(moviesCollectionRef, movie);
+    getMovies();
   };
 
   // Eliminar una película
@@ -50,10 +78,29 @@ const App: React.FC = () => {
   const randomMovie = () => {
     if (movies.length > 0) {
       const randomIndex = Math.floor(Math.random() * movies.length);
-      setPicked(movies[randomIndex]);
-      setShowModal(true); // Mostrar el modal
+      setSorted(movies[randomIndex]);
+      setShowPicked(true); // Mostrar el modal
     }
   };
+
+  // Votar pelicula
+  const voteMovie = async (id: string, rating: number) => {
+    const movieDoc = doc(db, "movies", id);
+    await updateDoc(movieDoc, { calification: rating });
+    getMovies();
+    setShowVote(false);
+    setPicked(null);
+  }
+
+  // Obtiene el rating de las recomendaciones por el que sugirió la película
+  const getRating = (createdBy : 'Nacho' | 'Yami') : string => {
+    var moviesByPerson = ratedMovies
+      .filter(movie => movie.createdBy === createdBy)
+      .map(movie => movie.calification!);
+
+      const sum = moviesByPerson.reduce((accumulator, value) => accumulator + value, 0);
+      return (sum / moviesByPerson.length).toFixed(1);
+  }
 
   useEffect(() => {
     getMovies();
@@ -61,49 +108,138 @@ const App: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>🎬 Lista de Películas 🎥</h1>
-      <div style={styles.formContainer}>
-        <input
-          type="text"
-          placeholder="Nueva película"
-          value={newMovie}
-          onChange={(e) => setNewMovie(e.target.value)}
-          style={styles.input}
-        />
-        <button onClick={addMovie} style={styles.addButton}>
-          Agregar
-        </button>
-      </div>
-      <ul style={styles.movieList}>
-        {movies.map((movie) => (
-          <li key={movie.id} style={styles.movieItem}>
-            <span style={styles.movieText}>
-              {movie.title}
-            </span>
-            <div style={styles.movieActions}>
-              <button
-                onClick={() => deleteMovie(movie.id)}
-                style={styles.deleteButton}
+      <h1 style={styles.title}>Lista de Pelis</h1>
+      <Accordion>
+        <AccordionSummary
+          expandIcon={<IoMdArrowDown/>}
+          aria-controls="panel1-content"
+          id="panel1-header"
+        >
+            Nueva Película
+        </AccordionSummary>
+        <AccordionDetails>
+          <AddMovie addMovie={addMovie}/>
+        </AccordionDetails>
+      </Accordion>
+      <Accordion defaultExpanded>
+        <AccordionSummary
+          expandIcon={<IoMdArrowDown/>}
+          aria-controls="panel1-content"
+          id="panel1-header"
+        >
+            Elegir Película
+        </AccordionSummary>
+        <AccordionDetails>
+          { loading ? (
+              <Box sx={{ display: 'flex', width: '100%', justifyContent: 'center' }}>
+                <CircularProgress />
+              </Box>
+          ) : notRatedMovies.length === 0 ? 'No hay películas que mostrar' : (
+            <>
+              <ul style={styles.movieList}>
+                {
+                  notRatedMovies.map((movie) => (
+                    <li key={movie.id} style={styles.movieItem}>
+                      <p style={styles.movieText}>
+                        {movie.title}
+                      </p>
+                      <div style={styles.movieActions}>
+                        <IconButton onClick={() => {
+                            setShowVote(true)
+                            setPicked(movie.id!)
+                          }}
+                        >
+                          <FaVoteYea color="#3c5a93" size={16}/>
+                        </IconButton>
+                        <IconButton onClick={() => deleteMovie(movie.id!)}>
+                          <FaTrashAlt color="#e92121" size={16} />
+                        </IconButton> 
+                      </div>
+                    </li>
+                  ))
+                }
+              </ul>
+              <Button 
+                onClick={randomMovie} 
+                style={{ marginTop: '10px' }}
+                variant="contained"
+                color="warning"
               >
-                Eliminar
-              </button>
+                Sortear
+              </Button>
+            </>
+          )}
+        </AccordionDetails>
+      </Accordion>
+      
+      <Accordion>
+        <AccordionSummary
+          expandIcon={<IoMdArrowDown/>}
+          aria-controls="panel1-content"
+          id="panel1-header"
+        >
+          Votadas
+        </AccordionSummary>
+        <AccordionDetails>
+          {  loading ? (
+              <Box sx={{ display: 'flex', width: '100%', justifyContent: 'center' }}>
+                <CircularProgress />
+              </Box>
+          ) :  ratedMovies.length === 0 ? 'No hay películas que mostrar' : (
+            <div>
+              <p style={styles.ratings}>Recomendaciones de Yami: { getRating('Yami') } </p>
+              <p style={styles.ratings}>Recomendaciones de Nacho: { getRating('Nacho') }</p>
+              <ul style={styles.movieList}>
+                {
+                  ratedMovies.map((movie) => (
+                    <li key={movie.id} style={styles.ratedItem}>
+                      <p style={styles.movieText}>
+                        {movie.title}
+                      </p>
+                      <div style={{ display: 'flex', columnGap: '10px'}}>
+                        <Rating
+                          size="small"
+                          max={10} 
+                          value={movie.calification!}
+                          precision={0.1}
+                          getLabelText={(value : number) => value.toString()}
+                        />
+                        { movie.calification! }
+                      </div>
+                    </li>
+                  ))
+                }
+              </ul>
             </div>
-          </li>
-        ))}
-      </ul>
-      <button onClick={randomMovie} style={styles.randomButton}>
-        Sortear
-      </button>
+          )}
+        </AccordionDetails>
+      </Accordion>
 
       {
-        showModal && picked && (
+        showPicked && sorted && (
           <Modal
             title="¡Película Sorteada! 🍿"
-            content={picked.title}
-            onClose={() => setShowModal(false)}
+            content={<p style={styles.modalText}>{sorted.title!}</p>}
+            onClose={() => setShowPicked(false) }
           />
         )
       }
+
+      {
+        showVote && picked && (
+          <Modal
+            title="Calificación de la peli! 🍿"
+            content={
+              <Calification 
+                voteMovie={voteMovie}
+                id={picked!}
+              />
+            }
+            onClose={() => setShowVote(false)}
+          />
+        )
+      }
+
     </div>
   );
 };
@@ -122,31 +258,21 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "28px",
     marginBottom: "20px",
   },
-  formContainer: {
-    marginBottom: "20px",
-  },
-  input: {
-    padding: "10px",
-    margin: "5px",
-    fontSize: "14px",
-    borderRadius: "5px",
-    border: "1px solid #ccc",
-  },
-  addButton: {
-    padding: "10px 20px",
-    backgroundColor: "#28a745",
-    color: "#fff",
-    fontSize: "14px",
-    border: "none",
-    borderRadius: "5px",
-    cursor: "pointer",
-    marginLeft: "5px",
-  },
   movieList: {
     listStyleType: "none",
     padding: 0,
-    width: "90%",
+    width: "100%",
     margin: "auto"
+  },
+  ratedItem: {
+    backgroundColor: "#fff",
+    margin: "5px 0",
+    padding: "10px",
+    borderRadius: "5px",
+    display: "flex",
+    flexFlow: 'column',
+    alignItems: "center",
+    boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.1)",
   },
   movieItem: {
     backgroundColor: "#fff",
@@ -160,6 +286,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   movieText: {
     fontSize: "14px",
+    textAlign: "start"
   },
   movieActions: {
     display: "flex",
@@ -191,6 +318,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: "pointer",
     marginTop: "20px",
   },
+  ratings: {
+    fontSize: '.8rem'
+  }
 };
 
 export default App;

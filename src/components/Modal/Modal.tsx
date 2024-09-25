@@ -1,22 +1,28 @@
 // src/components/Modal.tsx
 import React from "react";
+import { IoIosClose } from "@react-icons/all-files/io/IoIosClose";
 
 // Definir los tipos de las propiedades del Modal
 interface ModalProps {
   title: string;
-  content: string;
+  content: React.ReactElement;
   onClose: () => void;
 }
 
 const Modal: React.FC<ModalProps> = ({ title, content, onClose }) => {
   return (
-    <div style={styles.modalOverlay}>
+    <div 
+      style={styles.modalOverlay} 
+    >
       <div style={styles.modalContent}>
+        <IoIosClose 
+          size={40} 
+          color="grey" 
+          style={{ position: 'absolute', right: '30px' }}
+          onClick={onClose}
+        />
         <h2 style={styles.modalTitle}>{title}</h2>
-        <p style={styles.modalText}>{content}</p>
-        <button onClick={onClose} style={styles.closeButton}>
-          Cerrar
-        </button>
+        {content}
       </div>
     </div>
   );
@@ -44,7 +50,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   modalTitle: {
     fontSize: "24px",
-    marginBottom: "15px",
+    margin: "40px 0px 15px 0px",
   },
   modalText: {
     fontSize: "18px",
