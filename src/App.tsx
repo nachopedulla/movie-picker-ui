@@ -18,11 +18,11 @@ import AddMovie from "./components/AddMovie/AddMovie";
 import { IoMdArrowDown } from "@react-icons/all-files/io/IoMdArrowDown";
 import { FaVoteYea } from "@react-icons/all-files/fa/FaVoteYea";
 import { FaTrashAlt } from "@react-icons/all-files/fa/FaTrashAlt";
-import { GiPopcorn } from "@react-icons/all-files/gi/GiPopcorn";
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
-import { Button, IconButton, Rating } from "@mui/material";
 import Calification from "./components/Calification/Calification";
+import { Button, IconButton, Rating } from "@mui/material";
+import popcorn from "./assets/popcorn.png";
 
 // Definir el tipo de Movie
 export interface Movie {
@@ -108,7 +108,11 @@ const App: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>Lista de Pelis</h1>
+      <h1 style={styles.title}>
+        <img src={popcorn} style={{ width: '20px', height: '20px', marginRight: '10px'}}></img>
+        Lista de Pelis
+        <img src={popcorn} style={{ width: '20px', height: '20px', marginLeft: '10px'}}></img>
+      </h1>
       <Accordion>
         <AccordionSummary
           expandIcon={<IoMdArrowDown/>}
